@@ -13,13 +13,10 @@
 # limitations under the License.
 """Module exposing surface distance based measures."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from . import lookup_tables  # pylint: disable=relative-beyond-top-level
 import numpy as np
 from scipy import ndimage
+
+from .lookup_tables import neighbour_code_to_normals
 
 
 def compute_surface_distances(mask_gt, mask_pred, spacing_mm):
@@ -58,7 +55,7 @@ def compute_surface_distances(mask_gt, mask_pred, spacing_mm):
   # (given a 2x2x2 neighbourhood) according to the spacing_mm
   neighbour_code_to_surface_area = np.zeros([256])
   for code in range(256):
-    normals = np.array(lookup_tables.neighbour_code_to_normals[code])
+    normals = np.array(neighbour_code_to_normals[code])
     sum_area = 0
     for normal_idx in range(normals.shape[0]):
       # normal vector
