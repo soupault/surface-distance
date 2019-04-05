@@ -13,78 +13,68 @@
 # limitations under the License.
 """Simple tests for surface metric computations."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from absl.testing import absltest
 import numpy as np
 import surface_distance
 
+from numpy.testing import assert_almost_equal
 
-class SurfaceDistanceTest(absltest.TestCase):
 
-  def _assert_almost_equal(self, expected, actual, places):
-    """Assertion wrapper correctly handling NaN equality."""
-    if np.isnan(expected) and np.isnan(actual):
-      return
-    self.assertAlmostEqual(expected, actual, places)
-
-  def _assert_metrics(self,
-                      surface_distances, mask_gt, mask_pred,
-                      expected_average_surface_distance,
-                      expected_hausdorff_100,
-                      expected_hausdorff_95,
-                      expected_surface_overlap_at_1mm,
-                      expected_surface_dice_at_1mm,
-                      expected_volumetric_dice,
-                      places=3):
+def assert_metrics(surface_distances, mask_gt, mask_pred,
+                   expected_average_surface_distance,
+                   expected_hausdorff_100,
+                   expected_hausdorff_95,
+                   expected_surface_overlap_at_1mm,
+                   expected_surface_dice_at_1mm,
+                   expected_volumetric_dice,
+                   decimal=3):
     actual_average_surface_distance = (
         surface_distance.compute_average_surface_distance(surface_distances))
+
     for i in range(2):
-      self._assert_almost_equal(
+      assert_almost_equal(
           expected_average_surface_distance[i],
           actual_average_surface_distance[i],
-          places=places)
+          decimal=decimal)
 
-    self._assert_almost_equal(
+    assert_almost_equal(
         expected_hausdorff_100,
         surface_distance.compute_robust_hausdorff(surface_distances, 100),
-        places=places)
+        decimal=decimal)
 
-    self._assert_almost_equal(
+    assert_almost_equal(
         expected_hausdorff_95,
         surface_distance.compute_robust_hausdorff(surface_distances, 95),
-        places=places)
+        decimal=decimal)
 
     actual_surface_overlap_at_1mm = (
         surface_distance.compute_surface_overlap_at_tolerance(
             surface_distances, 1))
     for i in range(2):
-      self._assert_almost_equal(
+      assert_almost_equal(
           expected_surface_overlap_at_1mm[i],
           actual_surface_overlap_at_1mm[i],
-          places=places)
+          decimal=decimal)
 
-    self._assert_almost_equal(
+    assert_almost_equal(
         expected_surface_dice_at_1mm,
         surface_distance.compute_surface_dice_at_tolerance(
             surface_distances, 1),
-        places=places)
+        decimal=decimal)
 
-    self._assert_almost_equal(
+    assert_almost_equal(
         expected_volumetric_dice,
         surface_distance.compute_dice_coefficient(mask_gt, mask_pred),
-        places=places)
+        decimal=decimal)
 
-  def testSinglePixels2mmAway(self):
+
+def testSinglePixels2mmAway():
     mask_gt = np.zeros((128, 128, 128), np.uint8)
     mask_pred = np.zeros((128, 128, 128), np.uint8)
     mask_gt[50, 60, 70] = 1
     mask_pred[50, 60, 72] = 1
     surface_distances = surface_distance.compute_surface_distances(
         mask_gt, mask_pred, spacing_mm=(3, 2, 1))
-    self._assert_metrics(surface_distances, mask_gt, mask_pred,
+    assert_metrics(surface_distances, mask_gt, mask_pred,
                          expected_average_surface_distance=(1.5, 1.5),
                          expected_hausdorff_100=2.0,
                          expected_hausdorff_95=2.0,
@@ -92,14 +82,15 @@ class SurfaceDistanceTest(absltest.TestCase):
                          expected_surface_dice_at_1mm=0.5,
                          expected_volumetric_dice=0.0)
 
-  def testTwoCubes(self):
+
+def testTwoCubes():
     mask_gt = np.zeros((100, 100, 100), np.uint8)
     mask_pred = np.zeros((100, 100, 100), np.uint8)
     mask_gt[0:50, :, :] = 1
     mask_pred[0:51, :, :] = 1
     surface_distances = surface_distance.compute_surface_distances(
         mask_gt, mask_pred, spacing_mm=(2, 1, 1))
-    self._assert_metrics(
+    assert_metrics(
         surface_distances, mask_gt, mask_pred,
         expected_average_surface_distance=(0.322, 0.339),
         expected_hausdorff_100=2.0,
@@ -108,13 +99,14 @@ class SurfaceDistanceTest(absltest.TestCase):
         expected_surface_dice_at_1mm=0.836,
         expected_volumetric_dice=0.990)
 
-  def testEmptyPredictionMask(self):
+
+def testEmptyPredictionMask():
     mask_gt = np.zeros((128, 128, 128), np.uint8)
     mask_pred = np.zeros((128, 128, 128), np.uint8)
     mask_gt[50, 60, 70] = 1
     surface_distances = surface_distance.compute_surface_distances(
         mask_gt, mask_pred, spacing_mm=(3, 2, 1))
-    self._assert_metrics(
+    assert_metrics(
         surface_distances, mask_gt, mask_pred,
         expected_average_surface_distance=(np.inf, np.nan),
         expected_hausdorff_100=np.inf,
@@ -123,13 +115,14 @@ class SurfaceDistanceTest(absltest.TestCase):
         expected_surface_dice_at_1mm=0.0,
         expected_volumetric_dice=0.0)
 
-  def testEmptyGroundTruthMask(self):
+
+def testEmptyGroundTruthMask():
     mask_gt = np.zeros((128, 128, 128), np.uint8)
     mask_pred = np.zeros((128, 128, 128), np.uint8)
     mask_pred[50, 60, 72] = 1
     surface_distances = surface_distance.compute_surface_distances(
         mask_gt, mask_pred, spacing_mm=(3, 2, 1))
-    self._assert_metrics(
+    assert_metrics(
         surface_distances, mask_gt, mask_pred,
         expected_average_surface_distance=(np.nan, np.inf),
         expected_hausdorff_100=np.inf,
@@ -138,12 +131,13 @@ class SurfaceDistanceTest(absltest.TestCase):
         expected_surface_dice_at_1mm=0.0,
         expected_volumetric_dice=0.0)
 
-  def testEmptyBothMasks(self):
+
+def testEmptyBothMasks():
     mask_gt = np.zeros((128, 128, 128), np.uint8)
     mask_pred = np.zeros((128, 128, 128), np.uint8)
     surface_distances = surface_distance.compute_surface_distances(
         mask_gt, mask_pred, spacing_mm=(3, 2, 1))
-    self._assert_metrics(
+    assert_metrics(
         surface_distances, mask_gt, mask_pred,
         expected_average_surface_distance=(np.nan, np.nan),
         expected_hausdorff_100=np.inf,
@@ -154,4 +148,4 @@ class SurfaceDistanceTest(absltest.TestCase):
 
 
 if __name__ == "__main__":
-  absltest.main()
+    np.testing.run_module_suite()

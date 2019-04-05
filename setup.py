@@ -24,4 +24,4 @@ setup(name="Surface Distance Based Measures",
       author="DeepMind",
       license="Apache License, Version 2.0",
       packages=["surface_distance"],
-      install_requires=["numpy", "scipy", "absl-py"])
+      install_requires=["numpy", "scipy"])
